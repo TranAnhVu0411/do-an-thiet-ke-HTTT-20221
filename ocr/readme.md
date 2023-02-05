@@ -1,5 +1,7 @@
 pip install easyocr
+
 pip install flask
+
 pip install pdf2image
 
 Run file serve.py
