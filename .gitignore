@@ -174,3 +174,5 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+!tts_service/onnx_jets.pyc
+!tts_service/get_phonemes.pyc
