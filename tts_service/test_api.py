@@ -11,12 +11,14 @@ params = {
     Tư Mã Quang; và những tác phẩm về triết học dung hoà Lão, Khõng, Phật của Chu Đôn Di; Trương Hoành Cử, Trình Minh Đạo, \
     Trình Y Xuyên, Chu Hi. Nhưng xét riêng về những tiểu phẩm bằng tản văn thì Đường Tống thịnh ngang nhau và đều lưu lại \
     nhiều viên ngọc rất quí. Phong trào duy mĩ đến Lục Triều là cực thịnh. Chính lúc nó cực thịnh, đã có một số người vạch \
-    ra những sở đoản của nó như Tô Xước triều Nguỵ;""",
+    ra những sở đoản của nó như Tô Xước triều Nguỵ;""", # text bất kỳ
     'speed': 1.0 # tốc độ đọc, từ 0.1-1.9 speed càng lớn đọc càng nhanh
     }
+
 resp = requests.get(url=url, params=params)
 out = json.loads(resp.content.decode())
 print("status_code: ", resp.status_code, "\nTotal_time: ", out['total_time'])
+
 audio_bytes = base64.b64decode(out['audio_bytes'].encode('utf-8'))
-with open('./temp2.wav', "wb") as f:
+with open('./temp2.mp3', "wb") as f:
     f.write(audio_bytes)

@@ -13,16 +13,16 @@ def predict():
     speed = request.args.get('speed', 1.0)
     seq = text2seq(text)
     if len(seq) < 500:
-        model.text2wav(seq, './temp.wav', speed)
+        model.text2wav(seq, './temp.mp3', speed)
     else:
         cc_wav = np.array([])
         for i in split_seq(seq):
             wav, dur = model(i, speed).values()
             dur *= model.config['hop_length']
             cc_wav = np.concatenate([cc_wav, wav[dur[0]:-dur[-1]]])
-        model.arr2wav(cc_wav, './temp.wav')
+        model.arr2wav(cc_wav, './temp.mp3')
 
-    with open('./temp.wav', "rb") as f:
+    with open('./temp.mp3', "rb") as f:
         audio_bytes = f.read()
     body = {'audio_bytes': base64.b64encode(audio_bytes).decode("utf-8"),
             'total_time': time.time()-stime}
