@@ -47,6 +47,7 @@ const App: () => Node = () => {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [year, setYear] = useState("");
+  const URL = 'http://127.0.0.1:5000';
 
   const backgroundStyle = {
     backgroundColor: Colors.white,
@@ -114,8 +115,21 @@ const App: () => Node = () => {
     // }).catch(err => console.log(err))
   };
   const submit = async () => {
+    let data = {
+      image: scannedImage,
+      quality: "low"
+    }
     try {
-      
+      let response = await fetch(`${URL}/image_to_text`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      let result = await response.json();
+      return result;
     } catch (error) {
       console.log(error);
     }

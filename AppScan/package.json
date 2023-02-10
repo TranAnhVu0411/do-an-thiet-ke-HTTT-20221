@@ -18,6 +18,7 @@
     "react-native-image-base64": "^0.1.4",
     "react-native-image-picker": "^4.10.1",
     "react-native-pdf": "^6.6.2",
+    "react-native-radio-check": "^1.0.0",
     "react-native-select-dropdown": "^3.1.0"
   },
   "devDependencies": {
