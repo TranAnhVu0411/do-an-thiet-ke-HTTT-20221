@@ -35,9 +35,31 @@ import DocumentScanner, { ResponseType } from 'react-native-document-scanner-plu
 // import ImagePicker from 'react-native-image-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import ImgToBase64 from 'react-native-image-base64';
+import RadioGroup from 'react-native-radio-buttons-group';
 import SelectDropdown from 'react-native-select-dropdown'
 // import Pdf from 'react-native-pdf';
 // import PSPDFKitView from 'react-native-pspdfkit';
+
+const qualityImage = [
+  {
+    id: '1',
+    label: 'Low',
+    value: 'low',
+    selected: true,
+  },
+  {
+    id: '2',
+    label: 'Medium',
+    value: 'medium',
+    selected: false,
+  },
+  {
+    id: '3',
+    label: 'High',
+    value: 'high',
+    selected: false,
+  }
+];
 
 const App: () => Node = () => {
   const isDarkMode = useColorScheme() === 'dark';
@@ -47,6 +69,8 @@ const App: () => Node = () => {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [year, setYear] = useState("");
+  const [quality, setQuality] = useState(qualityImage);
+  const URL = 'http://127.0.0.1:5000';
 
   const backgroundStyle = {
     backgroundColor: Colors.white,
@@ -114,11 +138,27 @@ const App: () => Node = () => {
     // }).catch(err => console.log(err))
   };
   const submit = async () => {
+    let data = {
+      image: scannedImage,
+      quality: quality.find(t => t.selected == true).value
+    }
     try {
-      
+      let response = await fetch(`${URL}/image_to_text`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      let result = await response.json();
+      return result;
     } catch (error) {
       console.log(error);
     }
+  }
+  const onPressRadioButton = (radioButtonsArray) => {
+    setQuality(radioButtonsArray);
   }
   return (
     <GlobalProvider >
@@ -206,6 +246,13 @@ const App: () => Node = () => {
                 })
               ) : null
             }
+          </View>
+          <View style={styles.quality}>
+            <RadioGroup
+              radioButtons={quality}
+              onPress={onPressRadioButton}
+              // layout="row"
+            />
           </View>
           <View style={styles.submit}>
             <TouchableOpacity
@@ -306,6 +353,10 @@ const styles = StyleSheet.create({
     paddingRight: 34,
     fontSize: 18,
     alignSelf: "auto"
+  },
+  quality: {
+    marginTop: 32,
+    
   },
   textSelect: {
     color: "white",
