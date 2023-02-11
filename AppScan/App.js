@@ -20,6 +20,8 @@ import {
   View,
   Image,
   TouchableOpacity,
+  Dimensions,
+  Modal,
 } from 'react-native';
 
 import {
@@ -29,14 +31,14 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
-import GlobalProvider from './src/context/Provider';
 import DocumentPicker from 'react-native-document-picker';
 import DocumentScanner, { ResponseType } from 'react-native-document-scanner-plugin';
 // import ImagePicker from 'react-native-image-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import ImgToBase64 from 'react-native-image-base64';
 import RadioGroup from 'react-native-radio-buttons-group';
-import SelectDropdown from 'react-native-select-dropdown'
+import SelectDropdown from 'react-native-select-dropdown';
+import MIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 // import Pdf from 'react-native-pdf';
 // import PSPDFKitView from 'react-native-pspdfkit';
 
@@ -61,6 +63,9 @@ const qualityImage = [
   }
 ];
 
+let deviceHeight = Dimensions.get('window').height;
+let deviceWidth = Dimensions.get('window').width;
+
 const App: () => Node = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [filePDF, setFilePDF] = useState(null);
@@ -70,6 +75,8 @@ const App: () => Node = () => {
   const [author, setAuthor] = useState("");
   const [year, setYear] = useState("");
   const [quality, setQuality] = useState(qualityImage);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [indexModalVisible, setIndexModalVisible] = useState();
   const URL = 'http://127.0.0.1:5000';
 
   const backgroundStyle = {
@@ -142,129 +149,168 @@ const App: () => Node = () => {
       image: scannedImage,
       quality: quality.find(t => t.selected == true).value
     }
-    try {
-      let response = await fetch(`${URL}/image_to_text`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-      let result = await response.json();
-      return result;
-    } catch (error) {
-      console.log(error);
-    }
+    console.log("data", data);
+    // try {
+    //   let response = await fetch(`${URL}/image_to_text`, {
+    //     method: 'POST',
+    //     headers: {
+    //       Accept: 'application/json',
+    //       'Content-Type': 'application/json'
+    //     },
+    //     body: JSON.stringify(data)
+    //   });
+    //   let result = await response.json();
+    //   return result;
+    // } catch (error) {
+    //   console.log(error);
+    // }
   }
   const onPressRadioButton = (radioButtonsArray) => {
     setQuality(radioButtonsArray);
   }
+  const cancelImage = (id) => {
+    var scannedImageTmp = scannedImage.filter((img, index) => index != id);
+    setScannedImage(scannedImageTmp);
+  }
   return (
-    <GlobalProvider >
-      <SafeAreaView style={backgroundStyle}>
-        <StatusBar
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor={backgroundStyle.backgroundColor}
-        />
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={backgroundStyle}>
-          {/* <Header /> */}
-          <Text style={styles.titleHeader}>App Scan</Text>
-          {/* Info book */}
-          <View>
-            <View
-              style={styles.bodyApp}>
-              <Text style={[styles.lable]}>Title</Text>
-              <View style={[
-                styles.wrapper,
-              ]}>
-                <TextInput
-                  style={[styles.textInput]}
-                  onChangeText={(e) => setTitle(e)}
-                  value={title}
-                />
-              </View>
-            </View>
-            <View
-              style={styles.bodyApp}>
-              <Text style={[styles.lable]}>Author</Text>
-              <View style={[
-                styles.wrapper,
-              ]}>
-                <TextInput
-                  style={[styles.textInput]}
-                  onChangeText={(e) => setAuthor(e)}
-                  value={author}
-                />
-              </View>
-            </View>
-            <View
-              style={styles.bodyApp}>
-              <Text style={[styles.lable]}>Year</Text>
-              <View style={[
-                styles.wrapper
-              ]}>
-                <TextInput
-                  style={[styles.textInput]}
-                  onChangeText={(e) => setYear(e)}
-                  value={year}
-                />
-              </View>
+    <SafeAreaView style={backgroundStyle}>
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={backgroundStyle.backgroundColor}
+      />
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={backgroundStyle}>
+        {/* <Header /> */}
+        <Text style={styles.titleHeader}>App Scan</Text>
+        {/* Info book */}
+        <View>
+          <View
+            style={styles.bodyApp}>
+            <Text style={[styles.lable]}>Title</Text>
+            <View style={[
+              styles.wrapper,
+            ]}>
+              <TextInput
+                style={[styles.textInput]}
+                onChangeText={(e) => setTitle(e)}
+                value={title}
+              />
             </View>
           </View>
+          <View
+            style={styles.bodyApp}>
+            <Text style={[styles.lable]}>Author</Text>
+            <View style={[
+              styles.wrapper,
+            ]}>
+              <TextInput
+                style={[styles.textInput]}
+                onChangeText={(e) => setAuthor(e)}
+                value={author}
+              />
+            </View>
+          </View>
+          <View
+            style={styles.bodyApp}>
+            <Text style={[styles.lable]}>Year</Text>
+            <View style={[
+              styles.wrapper
+            ]}>
+              <TextInput
+                style={[styles.textInput]}
+                onChangeText={(e) => setYear(e)}
+                value={year}
+              />
+            </View>
+          </View>
+        </View>
 
-          {/* Scan or upload Image or pdf */}
-          <View style={styles.action}>
-            <View style={styles.container}>
-              <TouchableOpacity
-                onPress={uploadImage}
-                style={styles.btn}
-              >
-                <Text style={styles.textSelect}>UPLOAD IMAGES</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.container}>
-              <TouchableOpacity
-                onPress={scanDocument}
-                style={styles.btn}
-              >
-                <Text style={styles.textSelect}>SCAN DOCUMENTS</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={styles.viewImages}>
-            {
-              (scannedImage && scannedImage.length > 0) ? (
-                scannedImage.map((itemI, index) => {
-                  return (
-                    <View key={index}>
-                      <Image source={{ uri: `${itemI}` }} style={{ width: 150, height: 150, marginRight: 16 }} />
-                    </View>
-                  )
-                })
-              ) : null
-            }
-          </View>
-          <View style={styles.quality}>
-            <RadioGroup
-              radioButtons={quality}
-              onPress={onPressRadioButton}
-              // layout="row"
-            />
-          </View>
-          <View style={styles.submit}>
+        {/* Scan or upload Image or pdf */}
+        <View style={styles.action}>
+          <View style={styles.container}>
             <TouchableOpacity
-              onPress={submit}
-              style={styles.btnSubmit}
+              onPress={uploadImage}
+              style={styles.btn}
             >
-              <Text style={styles.textSelect}>SUBMIT</Text>
+              <Text style={styles.textSelect}>UPLOAD IMAGES</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </SafeAreaView>
-    </GlobalProvider>
+          <View style={styles.container}>
+            <TouchableOpacity
+              onPress={scanDocument}
+              style={styles.btn}
+            >
+              <Text style={styles.textSelect}>SCAN DOCUMENTS</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* View Image */}
+        <View style={styles.viewImages}>
+          {
+            (scannedImage && scannedImage.length > 0) ? (
+              scannedImage.map((itemI, index) => {
+                return (
+                  <View key={index} style={styles.imageItem}>
+                    <TouchableOpacity onPress={() => {
+                      setIndexModalVisible(index);
+                      setModalVisible(!modalVisible)
+                    }}>
+                      <View>
+                        <Image source={{ uri: `${itemI}` }} style={{ width: '85%', height: '100%' }} />
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={{ zIndex: 10, position: 'absolute', marginLeft: '84%', marginTop: -5 }}
+                      onPress={() => cancelImage(index)}
+                    >
+                      <View>
+                        <MIcon name='close-circle-outline' size={30} />
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                )
+              })
+            ) : null
+          }
+        </View>
+        {/* Modal Image */}
+        <View>
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={modalVisible}
+          >
+            <View style={{ marginTop: '3%', paddingLeft: '3%', backgroundColor: 'white', }}>
+              <Image source={{ uri: `${scannedImage[indexModalVisible]}` }} style={{ width: '97%', height: '99%', resizeMode: 'contain' }} />
+              <TouchableOpacity style={{ zIndex: 10, position: 'absolute', marginLeft: '93%', marginTop: -15 }}
+                onPress={() => setModalVisible(!modalVisible)}
+              >
+                <View>
+                  <MIcon name='close-circle-outline' size={30} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+        </View>
+        <View style={styles.quality}>
+          <Text style={styles.title_quality}>Choose image quality</Text>
+          <RadioGroup
+            radioButtons={quality}
+            onPress={onPressRadioButton}
+            layout="row"
+          />
+        </View>
+        <View style={styles.submit}>
+          <TouchableOpacity
+            onPress={submit}
+            style={styles.btnSubmit}
+          >
+            <Text style={styles.textSelect}>SUBMIT</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView >
   );
 };
 
@@ -343,7 +389,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32
+    marginTop: 32,
+    marginBottom: 16
   },
   btnSubmit: {
     backgroundColor: "#16a5e1",
@@ -355,18 +402,33 @@ const styles = StyleSheet.create({
     alignSelf: "auto"
   },
   quality: {
-    marginTop: 32,
-    
+    marginTop: 16,
+
+  },
+  title_quality: {
+    fontSize: 20,
+    marginLeft: 14,
+    marginBottom: 10
   },
   textSelect: {
     color: "white",
     fontSize: 18
   },
   viewImages: {
+    flex: 1,
+    flexWrap: 'wrap',
     marginTop: 24,
-    flexDirection: "row",
-    paddingLeft: 16,
-    paddingRight: 16
+    flexDirection: "row"
+  },
+  imageItem: {
+    // flex: 1,
+    width: '46%',
+    height: 150,
+    paddingTop: 8,
+    marginBottom: 16,
+    marginLeft: 10,
+    position: "relative",
+    paddingLeft: 10
   }
 });
 
