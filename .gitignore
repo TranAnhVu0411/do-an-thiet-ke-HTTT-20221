@@ -176,3 +176,4 @@ yarn-debug.log*
 yarn-error.log*
 !tts_service/onnx_jets.pyc
 !tts_service/get_phonemes.pyc
+.DS_Store
