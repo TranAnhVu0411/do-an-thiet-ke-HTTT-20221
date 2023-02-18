@@ -81,7 +81,8 @@ const App: () => Node = () => {
 
   const backgroundStyle = {
     backgroundColor: Colors.white,
-    marginTop: 16
+    marginTop: 16,
+    // color: Colors.black
   };
 
   const scanDocument = async () => {
@@ -93,26 +94,9 @@ const App: () => Node = () => {
     if (scannedImages.length > 0) {
       ImgToBase64.getBase64String(`${scannedImages[0]}`)
         .then(base64String => {
-          let base64Img = `data:image/jpg;base64,${base64String}`;
+          // let base64Img = `data:image/jpg;base64,${base64String}`;
+          let base64Img = base64String;
           setScannedImage([...scannedImage, base64Img])
-          // let data = {
-          //   "file": base64Img,
-          //   "upload_preset": "app_scan",
-          // };
-          // fetch(CLOUDINARY_URL, {
-          //   body: JSON.stringify(data),
-          //   headers: {
-          //     'content-type': 'application/json'
-          //   },
-          //   method: 'POST',
-          // }).then(async r => {
-          //   let data = await r.json();
-
-          //   // setImageUpload(data.url)
-          //   //Here I'm using another hook to set State for the photo that we get back //from Cloudinary
-          //   setScannedImage([...scannedImage, data.url])
-          //   // setPhoto(data.url);
-          // }).catch(err => console.log(err))
         })
         .catch(err => console.log(err));
     }
@@ -124,46 +108,44 @@ const App: () => Node = () => {
       includeBase64: true,
       //We need the image to be base64 in order to be formatted for Cloudinary
     });
-    let base64Img = `data:image/jpg;base64,${pickerResult.assets[0].base64}`;
+    let base64Img = pickerResult.assets[0].base64;
     setScannedImage([...scannedImage, base64Img])
-    // Here we need to include your Cloudinary upload preset with can be //found in your Cloudinary dashboard. 
-    // let data = {
-    //   "file": base64Img,
-    //   "upload_preset": "app_scan",
-    // }
-    //sends photo to cloudinary
-    // fetch(CLOUDINARY_URL, {
-    //   body: JSON.stringify(data),
-    //   headers: {
-    //     'content-type': 'application/json'
-    //   },
-    //   method: 'POST',
-    // }).then(async r => {
-    //   let data = await r.json()
-    //   // console.log("clo", data.url)
-    //   setScannedImage([...scannedImage, data.url])
-    // }).catch(err => console.log(err))
   };
   const submit = async () => {
-    let data = {
-      image: scannedImage,
-      quality: quality.find(t => t.selected == true).value
+    try {
+      let bookInfoData = {
+          title: title,
+          author: author,
+          year: year,
+          cover: scannedImage[0]
+      }
+      // Create book
+      let bookRes = await fetch("http://192.168.1.160:3502/api/books", {
+        body: JSON.stringify(bookInfoData),
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      })
+      let bookId = await bookRes.json()
+      // Create and preprocess pages
+      let pageImagesData = {
+        ...bookId,
+        images: scannedImage,
+        quality: quality.find(t => t.selected == true).value,
+      }
+      let pagesRes = await fetch("http://192.168.1.160:3502/api/pages", {
+        body: JSON.stringify(pageImagesData),
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      })
+    }catch (error) {
+      console.log(error);
     }
-    console.log("data", data);
-    // try {
-    //   let response = await fetch(`${URL}/image_to_text`, {
-    //     method: 'POST',
-    //     headers: {
-    //       Accept: 'application/json',
-    //       'Content-Type': 'application/json'
-    //     },
-    //     body: JSON.stringify(data)
-    //   });
-    //   let result = await response.json();
-    //   return result;
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
   const onPressRadioButton = (radioButtonsArray) => {
     setQuality(radioButtonsArray);
@@ -179,7 +161,7 @@ const App: () => Node = () => {
         backgroundColor={backgroundStyle.backgroundColor}
       />
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        // contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
         {/* <Header /> */}
         <Text style={styles.titleHeader}>App Scan</Text>
@@ -257,7 +239,7 @@ const App: () => Node = () => {
                       setModalVisible(!modalVisible)
                     }}>
                       <View>
-                        <Image source={{ uri: `${itemI}` }} style={{ width: '85%', height: '100%' }} />
+                        <Image source={{ uri: `data:image/jpg;base64,${itemI}` }} style={{ width: '85%', height: '100%' }} />
                       </View>
                     </TouchableOpacity>
 
@@ -274,6 +256,8 @@ const App: () => Node = () => {
             ) : null
           }
         </View>
+        
+
         {/* Modal Image */}
         <View>
           <Modal
@@ -282,7 +266,7 @@ const App: () => Node = () => {
             visible={modalVisible}
           >
             <View style={{ marginTop: '3%', paddingLeft: '3%', backgroundColor: 'white', }}>
-              <Image source={{ uri: `${scannedImage[indexModalVisible]}` }} style={{ width: '97%', height: '99%', resizeMode: 'contain' }} />
+              <Image source={{ uri: `data:image/jpg;base64,${scannedImage[indexModalVisible]}` }} style={{ width: '97%', height: '99%', resizeMode: 'contain' }} />
               <TouchableOpacity style={{ zIndex: 10, position: 'absolute', marginLeft: '93%', marginTop: -15 }}
                 onPress={() => setModalVisible(!modalVisible)}
               >
@@ -295,11 +279,13 @@ const App: () => Node = () => {
         </View>
         <View style={styles.quality}>
           <Text style={styles.title_quality}>Choose image quality</Text>
-          <RadioGroup
-            radioButtons={quality}
-            onPress={onPressRadioButton}
-            layout="row"
-          />
+          <View style={{color: "black"}}>
+            <RadioGroup
+              radioButtons={quality}
+              onPress={onPressRadioButton}
+              layout="row"
+            />
+          </View>
         </View>
         <View style={styles.submit}>
           <TouchableOpacity
@@ -318,7 +304,8 @@ const styles = StyleSheet.create({
   titleHeader: {
     textAlign: "center",
     fontSize: 40,
-    fontWeight: '900'
+    fontWeight: '900',
+    color: 'black'
   },
   bodyApp: {
     paddingLeft: 16,
@@ -329,7 +316,8 @@ const styles = StyleSheet.create({
   lable: {
     fontSize: 20,
     fontWeight: "bold",
-    marginTop: 16
+    marginTop: 16,
+    color: 'black'
   },
   wrapper: {
     height: 42,
@@ -402,17 +390,17 @@ const styles = StyleSheet.create({
     alignSelf: "auto"
   },
   quality: {
-    marginTop: 16,
-
+    marginTop: 16
   },
   title_quality: {
     fontSize: 20,
     marginLeft: 14,
-    marginBottom: 10
+    marginBottom: 10,
+    color: 'black'
   },
   textSelect: {
     color: "white",
-    fontSize: 18
+    fontSize: 18,
   },
   viewImages: {
     flex: 1,

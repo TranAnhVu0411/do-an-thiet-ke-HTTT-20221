@@ -1,8 +1,9 @@
 import React, {useState, useEffect} from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
-import {pdf_axios_instance} from '../../service/custom-axios';
+import {pdf_audio_axios_instance} from '../../service/custom-axios';
 import LoadingScreen from '../../components/LoadingScreen/LoadingScreen';
 import {BsZoomIn, BsZoomOut, BsHeadphones, BsFullscreenExit, BsFullscreen, BsFillCaretRightFill, BsFillCaretLeftFill, BsArrowReturnLeft} from 'react-icons/bs';
+import {AiOutlineHome} from 'react-icons/ai'
 
 // Import the main component
 import { Viewer } from '@react-pdf-viewer/core';
@@ -11,6 +12,7 @@ import { Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 
 import { toolbarPlugin } from '@react-pdf-viewer/toolbar';
+import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
 
 import {
     highlightPlugin,
@@ -22,9 +24,9 @@ import './style.scss';
 const AudioBook = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const chapterId = location.pathname.split("/").at(-1);
+    const bookId = location.pathname.split("/").at(-1);
     const [metaData, setMetadata] = useState({})
-    const [url, setUrl] = useState({
+    const [base64, setBase64] = useState({
         pdf: null,
         audio: null
     })
@@ -33,26 +35,14 @@ const AudioBook = () => {
     useEffect(() => {
         const fetchData = async() => {
             try{
-                const metaRes = await pdf_axios_instance.get(
-                    `/chapter_meta/${chapterId}`
-                )
-                setMetadata(metaRes.data)
+                // const metaRes = await pdf_audio_axios_instance.get(
+                //     `/chapter_meta/${bookId}`
+                // )
+                // setMetadata(metaRes.data)
 
-                let pdfUrlForm = new FormData();
-                pdfUrlForm.append('upload-type', 'GET');
-                pdfUrlForm.append('type', 'chapter');
-                pdfUrlForm.append('id', chapterId)
-                pdfUrlForm.append('data-type', 'pdf')
-                let pdfUrlRes = await pdf_axios_instance.post('urls', pdfUrlForm)
+                let base64Res = await pdf_audio_axios_instance.get(`books/${bookId}`)
 
-                let audioUrlForm = new FormData();
-                audioUrlForm.append('upload-type', 'GET');
-                audioUrlForm.append('type', 'chapter');
-                audioUrlForm.append('id', chapterId)
-                audioUrlForm.append('data-type', 'audio')
-                let audioUrlRes = await pdf_axios_instance.post('urls', audioUrlForm)
-
-                setUrl({pdf: pdfUrlRes.data['url'], audio: audioUrlRes.data['url']})
+                setBase64({pdf: base64Res.data['pdf'], audio: base64Res.data['audio']})
                 setIsLoad(true)
             }catch (err) {
                 setIsLoad(true)
@@ -60,11 +50,14 @@ const AudioBook = () => {
             }
         }
         fetchData()
-    }, [chapterId])
+    }, [bookId])
 
     // Toolbar
     const toolbarPluginInstance = toolbarPlugin();
     const { Toolbar } = toolbarPluginInstance
+
+    const pageNavigationPluginInstance = pageNavigationPlugin();
+    const { jumpToPage } = pageNavigationPluginInstance;
 
     // Render Highlight
     const renderHighlights = (props) => (
@@ -127,8 +120,6 @@ const AudioBook = () => {
     const handleAudioView = () => {
         let audioTag = document.querySelectorAll('#audiobook-audio')[0]
         if (audioView) {
-            // Xoá toàn bộ highlight
-            document.querySelectorAll('.highlight-box.highlight').forEach((el) => el.classList.remove('highlight'));
             // Ngắt audio khi không bật audio view
             audioTag.pause()
         }else{
@@ -138,27 +129,6 @@ const AudioBook = () => {
             audioTag.currentTime=currentTime
         }
         setAudioView(!audioView)
-    }
-
-    const handlePreviousChapter = async() => {
-        const checkRes = await pdf_axios_instance(`/chapters/${chapterId}?state=previous`)
-        if (checkRes.data['pdfStatus']==='ready'&&checkRes.data['audioStatus']==='ready'){
-            // Nếu pdf và audio chưa sẵn sàng => đưa ra cảnh báo
-            navigate(`/chapter/${checkRes.data['chapter']["_id"]["$oid"]}`)
-        }else{
-            // Nếu không => chuyển trang
-            window.alert('Chương đang trong quá trình chỉnh sửa, xin vui lòng thử lại sau')
-        }
-    }
-
-    // Tương tự như trên
-    const handleNextChapter = async() => {
-        const checkRes = await pdf_axios_instance(`/chapters/${chapterId}?state=next`)
-        if (checkRes.data['pdfStatus']==='ready'&&checkRes.data['audioStatus']==='ready'){
-            navigate(`/chapter/${checkRes.data['chapter']["_id"]["$oid"]}`)
-        }else{
-            window.alert('Chương đang trong quá trình chỉnh sửa, xin vui lòng thử lại sau')
-        }
     }
 
     // Full Screen
@@ -209,24 +179,10 @@ const AudioBook = () => {
                                     </div>
                                     <div className='ultilize-section'>
                                         <button 
-                                            className='chapter-change-button'
-                                            onClick={handlePreviousChapter} 
-                                            disabled={metaData['chapter']['index']===1?true:false}
+                                            onClick={() => navigate(`/}`)} 
+                                            title="Quay về trang chủ"
                                         >
-                                            <BsFillCaretLeftFill/><span>Chương trước</span>
-                                        </button>
-                                        <button 
-                                            className='chapter-change-button'
-                                            onClick={handleNextChapter}  
-                                            disabled={metaData['chapter']['index']===metaData['numChapter']?true:false}
-                                        >
-                                            <span>Chương sau</span><BsFillCaretRightFill/>
-                                        </button>
-                                        <button 
-                                            onClick={() => navigate(`/book/info/${metaData['chapter']["book"]["$oid"]}`)} 
-                                            title="Quay về thông tin sách"
-                                        >
-                                            <BsArrowReturnLeft/>
+                                            <AiOutlineHome/>
                                         </button>
                                         <button 
                                             onClick={handleAudioView} 
@@ -244,6 +200,11 @@ const AudioBook = () => {
                                         >
                                             {fullScreen?<BsFullscreenExit/>:<BsFullscreen/>}
                                         </button>
+                                        <button 
+                                            onClick={() => jumpToPage(1)}
+                                        >
+                                            goto
+                                        </button>
                                     </div>
                                 </>
                             );
@@ -254,8 +215,7 @@ const AudioBook = () => {
                     <audio 
                         id = 'audiobook-audio'
                         controls 
-                        src={url.audio}
-                        onTimeUpdate={timeUpdate}
+                        src={`data:audio/mpeg;base64,${base64.audio}`}
                     />
                 </div>
                 <div 
@@ -264,9 +224,9 @@ const AudioBook = () => {
                         (audioView?{height: '80vh'}:{height: '100vh'}):
                         (audioView?{height: '70vh'}:{height: '80vh'})}>
                     <Viewer 
-                        fileUrl={url.pdf}
-                        onPageChange={handlePageChange} 
-                        plugins={[toolbarPluginInstance, highlightPluginInstance]} />
+                        fileUrl={`data:application/pdf;base64,${base64.pdf}`}
+                        // onPageChange={handlePageChange} 
+                        plugins={[toolbarPluginInstance, pageNavigationPluginInstance]} />
                 </div>
             </div>
         )

@@ -7,7 +7,7 @@ def make_celery(app, host):
     celery = Celery('worker',
              broker=f'amqp://guest:guest@{host}:5672',
              backend=f'mongodb://{host}:27017/task_management',
-             include=['tasks.ocr_tasks', 'tasks.pdf_tasks', 'tasks.audio_tasks', 'tasks.chapter_tasks'])
+             include=['tasks.tasks'])
 
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):

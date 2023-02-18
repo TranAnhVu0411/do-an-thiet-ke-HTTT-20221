@@ -1,118 +1,71 @@
-import React, {useState, useEffect, useContext} from 'react';
-import BookTable from '../../components/BookTable/BookTable';
-import {main_axios_instance} from '../../service/custom-axios';
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import "./style.scss";
+import React, {useState, useEffect} from "react"
+import {AiFillEdit} from 'react-icons/ai'
+import {BsHeadphones} from 'react-icons/bs'
 import LoadingScreen from "../../components/LoadingScreen/LoadingScreen";
-import Pagination from 'react-responsive-pagination';
-import '../../util/stylePagination.scss'
-import FilterBar from '../../components/ToolBar/FilterBar/FilterBar';
-import SearchBar from '../../components/ToolBar/SearchBar/SearchBar';
-import { AuthContext } from "../../context/AuthContextProvider";
-import { getRole } from '../../context/role';
+import {pdf_audio_axios_instance} from '../../service/custom-axios';
+import "./style.scss";
 
 const Index = () => {
-    const [books, setBooks] = useState([]);
-    const [pageCount, setPageCount] = useState(0);
+    const [books, setBooks] = useState([])
     const [isLoad, setIsLoad] = useState(false);
-    const location = useLocation();
-    const path = location.pathname;
-    const searchQuery = location.search;
-    const [searchParams] = useSearchParams();
-    // Phân trang
-    const [pageOffset, setPageOffset] = useState(1);
-    const [totalItem, setTotalItem] = useState(0);
-    const navigate = useNavigate();
-
-    // Kiểm tra người dùng là user hay admin
-    const { currentUser } = useContext(AuthContext);
-    
     useEffect(() => {
-        const fetchData = async () => {
-          try {
-            let res={};
-            let currentPage = 1;
-            const pathList = path.split('/');
-            if (pathList.includes('page')){
-                // Nếu trong url chứa page => lấy số trang hiện tại
-                // Nếu không => đặt pageOffset ==1 
-                currentPage = Number(pathList[pathList.indexOf('page')+1]);
+        const fetchData = async() => {
+            try{
+                const res = await pdf_audio_axios_instance.get(`/books`)
+                setBooks(res.data)
             }
-            setPageOffset(currentPage)
-            if (getRole(currentUser) !== "admin"){
-                // Nếu người truy cập là user/guest
-                if (pathList.includes('category')){
-                    // Nếu được truy cập thông qua category
-                    const category = path.split("/")[3];
-                    res = await main_axios_instance.get(`/book/category/${category}${searchQuery==="" ? "?" : `${searchQuery}&`}page=${pageOffset}`);
-                }else{
-                    // Nếu được truy cập thông qua advance-search
-                    res = await main_axios_instance.get(`/book/find${searchQuery==="" ? "?" : `${searchQuery}&`}page=${pageOffset}`);
-                }
-            }else{
-                // Nếu người truy cập là admin
-                res = await main_axios_instance.get(`/book/find${searchQuery==="" ? "?" : `${searchQuery}&`}page=${pageOffset}`);
+            catch(err){
+                console.log(err);
             }
-            setBooks(res.data.books);
-            setTotalItem(res.data.total);
-            setPageCount(res.data.pageCount);
-            setIsLoad(true);
-          } catch (err) {
-            console.log(err);
-          }
-        };
-        fetchData();
-    }, [path, searchQuery, searchParams, pageOffset, currentUser]);
-    const handlePageChange = page => {
-        let newPath = ''
-        const pathList = path.split('/')
-        if (pathList.includes('page')){
-            // Nếu url chứa page => thay thế số trang
-            newPath =  path.replace(`page/${pageOffset}`, `page/${page}`)
-        }else{
-            // Nếu không, thêm '/page/${trang hiện tại}
-            newPath =  `${path}/page/${page}`
         }
-
-        navigate(`${newPath}${searchQuery}`);
-    };
-
-    // chuyển toolbar (filter hoặc search)
-    const handleToolbar = () => {
-        if (getRole(currentUser) !== 'admin'){
-            const pathList = path.split('/')
-            if(pathList.includes('category')){
-                return <FilterBar searchParams={searchParams} path={path} category={pathList[pathList.indexOf('category')+1]}/>
-            }else{
-                return <SearchBar searchParams={searchParams} path={path}/>
-            }
-        } else {
-            return <SearchBar searchParams={searchParams} path={path}/>
-        }
-    }
-
+        fetchData()
+        setIsLoad(true)
+    }, [])
     if (isLoad){
         return (
-            <div className='index'>
-                {
-                    handleToolbar()
-                }
-                <div className='result-number'>
-                    {totalItem} kết quả  
+            <div className="index">
+                <div className="search-bar">
+                    Search bar
                 </div>
-                <div className='book-table'>
-                    <BookTable books={books} />
+                <div className="book-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style={{width:"40%"}}>Tiêu đề</th>
+                                <th style={{width:"15%"}}>Tác giả</th>
+                                <th style={{width:"5%"}}>Năm sáng tác</th>
+                                <th style={{width:"15%"}}>&nbsp;</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {books.map((book) => {
+                                return(
+                                <tr key={book._id.$oid}>
+                                    <td>{book.title}</td>
+                                    <td>{book.author}</td>
+                                    <td>{book.year}</td>
+                                    <td>
+                                        <div className="table-button">
+                                            <button>
+                                                <AiFillEdit/>
+                                            </button>
+                                            <button>
+                                                <BsHeadphones/>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
                 </div>
-                <Pagination
-                    total={pageCount}
-                    current={pageOffset}
-                    onPageChange={page => {handlePageChange(page)}}
-                />
             </div>
         )
     }else{
-        <LoadingScreen />
+        return <LoadingScreen />
     }
+    
 }
 
-export default Index;
+export default Index

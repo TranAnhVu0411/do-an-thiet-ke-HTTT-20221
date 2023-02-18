@@ -36,7 +36,7 @@ from pdf2image import convert_from_path
  
 from PIL import Image
 
-# Store Pdf with convert_from_path function
-image = Image.open('page'+ str(0) +'.jpg')
-image = image.resize((600, 800))
-image.save('page'+ str('x') +'.jpg')
+# # Store Pdf with convert_from_path function
+# image = Image.open('page'+ str(0) +'.jpg')
+# image = image.resize((600, 800))
+# image.save('page'+ str('x') +'.jpg')

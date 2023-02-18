@@ -25,13 +25,16 @@ def _image_to_text():
 	data = {"success": False}
 	if request.method == "POST":
 		#convert base64 to image
+		# form = request.get_json()
 		encoded_string = request.form.get('image', '')
+		# encoded_string = form['image']
 		with open("image.jpg", "wb") as image_file:
 			image_file.write(base64.b64decode(encoded_string))
 		image = Image.open("image.jpg")
 		
 		#select quality image
 		quality = request.form.get('quality', '')
+		# quality = form['quality']
 		new_image = resize(quality, image)
 		new_image.save('new_image' +'.jpg')
 		result = reader.readtext('new_image.jpg', paragraph="False")
@@ -122,4 +125,4 @@ if __name__ == "__main__":
 	# target_vectorization='target_vectorization_layer.pkl',
 	# model_path='restore_diacritic.keras')
 	print("App run!")
-	app.run(debug=True)
+	app.run(port=5001,debug=True,host = '0.0.0.0')

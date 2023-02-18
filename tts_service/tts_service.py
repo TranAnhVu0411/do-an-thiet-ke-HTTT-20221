@@ -9,7 +9,8 @@ model = OnnxJETS("model_weight/jets.ort", "model_weight/config.yaml")
 @app.route('/predict', methods=['GET'])
 def predict():
     stime = time.time()
-    text = request.args['text']
+    # text = request.args['text']
+    text = request.form.get('text', '')
     speed = request.args.get('speed', 1.0)
     seq = text2seq(text)
     if len(seq) < 500:

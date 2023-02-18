@@ -1,0 +1,1 @@
+reader = easyocr.Reader(['vi'])

@@ -1,68 +1,51 @@
-from flask import Response, request, make_response, jsonify
+from flask import request
 from flask_restful import Resource
-from database.models import Chapters, Pages, Sentences
-from cloud.minio_utils import *
-from mongoengine.errors import (DoesNotExist, FieldDoesNotExist,
-                                InvalidQueryError, NotUniqueError,
-                                ValidationError)
-from resources.errors.page_errors import (DeletingPageError, InternalServerError,
-                                   PageAlreadyExistsError, PageNotExistsError,
-                                   SchemaValidationError, UpdatingPageError)
+from database.models import Pages
+import os
+from celery import group, chain
+from tasks.tasks import *
 
-# route api/pages
+# routes api/pages
 class PagesApi(Resource):
-    # Tạo page mới
     def post(self):
-        try:
-            body = request.form.to_dict()
-            chapter_id = body.pop('chapterId')
-            chapter = Chapters.objects.get(id=chapter_id)
-            page = Pages(**body, chapter=chapter)   
-            page.save()
-            id = page.id
-            return {'pageId': str(id)}, 200
-        except (FieldDoesNotExist, ValidationError):
-            raise SchemaValidationError
-        except NotUniqueError:
-            raise PageAlreadyExistsError
-        except Exception as e:
-            raise InternalServerError
+        body = request.json
+        pages = []
+        for idx, i in enumerate(body['images']):
+            page = Pages(book=body['bookId'], index=idx)
+            result = page.save()
+            pages.append({"page": result, "image": i, "quality": body["quality"]})
 
-# route api/pages/<page_id>
-class PageApi(Resource):
-    # Cập nhật thông tin page
-    def put(self, page_id):
-        try:
-            body = request.form.to_dict()
-            page = Pages.objects.get(id=page_id)
-            page.update(**body)
-            return 'update successful', 200
-        except InvalidQueryError:
-            raise SchemaValidationError
-        except DoesNotExist:
-            raise UpdatingPageError
-        except Exception:
-            raise InternalServerError
-    # Lấy thông tin page + sentences
-    def get(self, page_id):
-        try:
-            page = Pages.objects.get(id=page_id)
-            sentences = Sentences.objects(page=page_id).order_by('index')
-            return make_response(jsonify({'page': page, 'sentences': sentences}), 200)
-        except InvalidQueryError:
-            raise SchemaValidationError
-        except DoesNotExist:
-            raise UpdatingPageError
-        except Exception:
-            raise InternalServerError
-    # Xoá page
-    def delete(self, page_id):
-        try:
-            # user_id = get_jwt_identity()
-            page = Pages.objects.get(id=page_id)
-            page.delete()
-            return 'delete successful', 200
-        except DoesNotExist:
-            raise DeletingPageError
-        except Exception:
-            raise InternalServerError
+        for i in pages:
+            if not os.path.exists(i["page"].get_page_folder_path()):
+                os.makedirs(i["page"].get_page_folder_path())
+
+        work_flow = chain(
+                        chain(
+                            chain(
+                                create_ocr_page.si(
+                                    page_id = str(page["page"].id),
+                                    page_path = page["page"].get_page_folder_path(),
+                                    base64image = page["image"],
+                                    quality = page["quality"]
+                                ),
+                                create_audio_page.s()
+                            ) for page in pages
+                        ),
+                        get_pdf_audio_path.si(
+                            id = body['bookId']
+                        ),
+                        group([
+                            concat_audio.s(),
+                            concat_pdf.s()  
+                        ])
+        ).apply_async()
+            
+        return {'work_flow_id': work_flow.id}, 200
+
+# routes api/pages/id
+class PagesParamsApi(Resource):
+    def put(self, id):
+        body = request.form.to_dict()
+        page = Pages.objects.get(id=id)
+        page.update(**body)
+        return 'update successful', 200
