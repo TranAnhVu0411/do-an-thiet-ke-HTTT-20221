@@ -1,18 +1,32 @@
 import React, {useState, useEffect} from "react"
+import {useNavigate} from "react-router-dom"
 import {AiFillEdit} from 'react-icons/ai'
 import {BsHeadphones} from 'react-icons/bs'
 import LoadingScreen from "../../components/LoadingScreen/LoadingScreen";
 import {pdf_audio_axios_instance} from '../../service/custom-axios';
+import Edit from "./Edit/Edit";
 import "./style.scss";
+import Pagination from 'react-responsive-pagination';
+import '../../util/stylePagination.scss';
 
 const Index = () => {
+    const navigate = useNavigate()
     const [books, setBooks] = useState([])
     const [isLoad, setIsLoad] = useState(false);
+    // Phục vụ cho việc chỉnh sửa thông tin sách
+    const [editView, setEditView] = useState(false);
+    const [editBook, setEditBook] = useState(null)
+    const [edit, setEdit] = useState(false);
+    // Phục vụ cho việc phân trang
+    const [pageOffset, setPageOffset] = useState(1); // Trang hiện tại của comment
+    const [pageCount, setPageCount] = useState(0); // Tổng số trang
+
     useEffect(() => {
         const fetchData = async() => {
             try{
-                const res = await pdf_audio_axios_instance.get(`/books`)
-                setBooks(res.data)
+                const res = await pdf_audio_axios_instance.get(`/books?page=${pageOffset}`)
+                setBooks(res.data['books'])
+                setPageCount(res.data['pageCount'])
             }
             catch(err){
                 console.log(err);
@@ -20,14 +34,23 @@ const Index = () => {
         }
         fetchData()
         setIsLoad(true)
-    }, [])
+        setEdit(false)
+    }, [edit, pageOffset])
+
+    const handlePageChange = page => {
+        setPageOffset(page);
+    };
+    
     if (isLoad){
         return (
             <div className="index">
-                <div className="search-bar">
-                    Search bar
-                </div>
                 <div className="book-table">
+                    <h2>Danh sách sách</h2>
+                    <Pagination
+                            total={pageCount}
+                            current={pageOffset}
+                            onPageChange={page => {handlePageChange(page)}}
+                    />
                     <table>
                         <thead>
                             <tr>
@@ -46,10 +69,13 @@ const Index = () => {
                                     <td>{book.year}</td>
                                     <td>
                                         <div className="table-button">
-                                            <button>
+                                            <button onClick = {() => {
+                                                setEditBook(book)
+                                                setEditView(true)
+                                            }}>
                                                 <AiFillEdit/>
                                             </button>
-                                            <button>
+                                            <button onClick = {() => {navigate(`/${book._id.$oid}`)}}>
                                                 <BsHeadphones/>
                                             </button>
                                         </div>
@@ -60,6 +86,14 @@ const Index = () => {
                         </tbody>
                     </table>
                 </div>
+                {editView ? 
+                    <Edit
+                        onClose={() => setEditView(false)}
+                        book={editBook}
+                        handleEdit={() => setEdit(true)}
+                    /> : 
+                    <></>
+                }
             </div>
         )
     }else{

@@ -24,8 +24,11 @@ class BooksApi(Resource):
             os.makedirs(book.get_book_folder_path())
         return {'bookId': str(book.id)}, 200
     def get(self):
-        books = Books.objects()
-        return make_response(jsonify(books), 200)
+        per_page = 5
+        page = int(request.args.get('page', '1'))
+        total = Books.objects().count()
+        books = Books.objects().skip((per_page*page)-per_page).limit(per_page)
+        return make_response(jsonify({"books": books, "pageCount": int(total / per_page)+1}), 200)
     
 # routes api/books/id
 class BooksParamsApi(Resource):
@@ -49,6 +52,11 @@ class BooksParamsApi(Resource):
         with open(os.path.join(path, "{}.{}".format(str(book.id), 'mp3')), "rb") as file:
             audio_encoded_string = base64.b64encode(file.read()).decode('utf-8')
         return {'pdf': pdf_encoded_string, 'audio': audio_encoded_string, 'metadata': page_list}, 200 
+    def put(self, id):
+        body = request.form.to_dict()
+        book = Books.objects.get(id=id)
+        book.update(**body)
+        return 'update successful', 200
 
 # routes api/books/status/:id
 class BooksStatusApi(Resource):
