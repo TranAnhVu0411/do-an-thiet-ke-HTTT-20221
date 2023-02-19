@@ -8,6 +8,10 @@ import fitz
 from base64 import b64decode, b64encode
 from .utils.audio_utils import *
 
+# MAIN_APP_HOST = 'http://192.168.43.165:3502'
+# OCR_APP_HOST = 'http://192.168.43.25:5001'
+# AUDIO_APP_HOST = 'http://192.168.43.20:5005'
+
 MAIN_APP_HOST = 'http://localhost:3502'
 OCR_APP_HOST = 'http://localhost:5001'
 AUDIO_APP_HOST = 'http://localhost:5005'
@@ -15,6 +19,7 @@ AUDIO_APP_HOST = 'http://localhost:5005'
 @celery_pdf_process.task()
 def create_ocr_page(page_id, page_path, base64image, quality):
     try:
+        print("start ocr")
         ocr_response = requests.post(
             f"{OCR_APP_HOST}/image_to_text", 
             data = {
@@ -45,17 +50,22 @@ def create_ocr_page(page_id, page_path, base64image, quality):
 
 @celery_pdf_process.task()
 def create_audio_page(result):
+    print('start audio')
     page_id = result['page_id']
     page_path = result['page_path']
     text = result['text']
     try:
+        print('call api')
         audio_response = requests.get(
             f"{AUDIO_APP_HOST}/predict", 
             data = {
                 "text": text,
         })
+        print('done', audio_response)
         base64audio = audio_response.json()["audio_bytes"]
-        audio_length = audio_response.json()["total_time"]
+        
+        audio_segment = AudioSegment.from_file(BytesIO(b64decode(base64audio)), format="mp3")
+        audio_length = audio_segment.duration_seconds
 
         upload_audio_response = requests.post(
             f"{MAIN_APP_HOST}/api/files", 
@@ -78,23 +88,13 @@ def create_audio_page(result):
         print(e)
         requests.put(f"{MAIN_APP_HOST}/api/pages/{page_id}", data = {"audioStatus": Status.ERROR})
 
-
-
-
-# from app import celery_pdf_process
-# from database.models import Sentences, Pages, Chapters
-# from cloud.minio_utils import *
-# import requests
-# from database.models import *
-
-
-
 # Kiểm tra trạng thái của chapters
 # Nếu toàn bộ các page trong chapters đều sẵn sàng => tạo pdf/audio cho chapter
 # Nếu không => chưa tạo
 @celery_pdf_process.task()
 def get_pdf_audio_path(id):
     try:
+        print('check status')
         get_response = requests.get(f"{MAIN_APP_HOST}/api/books/status/{id}")
         state = get_response.json()
 
@@ -111,6 +111,7 @@ def get_pdf_audio_path(id):
 
 @celery_pdf_process.task()
 def concat_audio(preprocess_metadata):
+    print('merge audio')
     if preprocess_metadata!= 'incomplete':
         try:
             page_ids = json.loads(preprocess_metadata)['page_ids']
@@ -148,6 +149,7 @@ def concat_audio(preprocess_metadata):
 
 @celery_pdf_process.task()
 def concat_pdf(preprocess_metadata):
+    print('merge pdf')
     if preprocess_metadata!= 'incomplete':
         try:
             page_ids = json.loads(preprocess_metadata)['page_ids']
