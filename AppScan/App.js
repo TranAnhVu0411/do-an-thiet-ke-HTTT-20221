@@ -76,6 +76,7 @@ const App: () => Node = () => {
   const [year, setYear] = useState("");
   const [quality, setQuality] = useState(qualityImage);
   const [modalVisible, setModalVisible] = useState(false);
+  const [openModalSubmitSucc, setOpenModalSubmitSucc] = useState(false);
   const [indexModalVisible, setIndexModalVisible] = useState();
   const URL = 'http://127.0.0.1:5000';
 
@@ -114,13 +115,13 @@ const App: () => Node = () => {
   const submit = async () => {
     try {
       let bookInfoData = {
-          title: title,
-          author: author,
-          year: year,
-          cover: scannedImage[0]
+        title: title,
+        author: author,
+        year: year,
+        cover: scannedImage[0]
       }
       // Create book
-      let bookRes = await fetch("http://192.168.1.160:3502/api/books", {
+      let bookRes = await fetch("http://192.168.43.165:3502/api/books", {
         body: JSON.stringify(bookInfoData),
         headers: {
           Accept: 'application/json',
@@ -135,7 +136,7 @@ const App: () => Node = () => {
         images: scannedImage,
         quality: quality.find(t => t.selected == true).value,
       }
-      let pagesRes = await fetch("http://192.168.1.160:3502/api/pages", {
+      let pagesRes = await fetch("http://192.168.43.165:3502/api/pages", {
         body: JSON.stringify(pageImagesData),
         headers: {
           Accept: 'application/json',
@@ -143,7 +144,12 @@ const App: () => Node = () => {
         },
         method: 'POST',
       })
-    }catch (error) {
+      setTitle("");
+      setAuthor("");
+      setYear("");
+      setScannedImage([]);
+      setOpenModalSubmitSucc(true);
+    } catch (error) {
       console.log(error);
     }
   }
@@ -227,6 +233,11 @@ const App: () => Node = () => {
             </TouchableOpacity>
           </View>
         </View>
+        <View style={styles.note}>
+          <Text>
+            * Note: when scan documents need to remove the header and footer to get better results
+          </Text>
+        </View>
         {/* View Image */}
         <View style={styles.viewImages}>
           {
@@ -256,13 +267,13 @@ const App: () => Node = () => {
             ) : null
           }
         </View>
-        
+
 
         {/* Modal Image */}
         <View>
           <Modal
-            animationType="slide"
-            transparent={true}
+            animationType="fade"
+            transparent={false}
             visible={modalVisible}
           >
             <View style={{ marginTop: '3%', paddingLeft: '3%', backgroundColor: 'white', }}>
@@ -277,9 +288,31 @@ const App: () => Node = () => {
             </View>
           </Modal>
         </View>
+        {/* Modal succ */}
+        <View>
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={openModalSubmitSucc}
+            onRequestClose={() => setOpenModalSubmitSucc(false)}
+            onShow={() => {
+              setTimeout(() => {
+                setOpenModalSubmitSucc(false)
+              }, 3000);
+            }}
+          >
+            <View style={styles.modalCreatBookSucc}>
+              <View style={styles.textModalPopup}>
+                <Text style={{ fontSize: 18, fontWeight: '600' }}>You have successfully</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600' }}>created the book</Text>
+              </View>
+            </View>
+          </Modal>
+        </View>
+        {/* Quality image */}
         <View style={styles.quality}>
           <Text style={styles.title_quality}>Choose image quality</Text>
-          <View style={{color: "black"}}>
+          <View style={{ color: "black" }}>
             <RadioGroup
               radioButtons={quality}
               onPress={onPressRadioButton}
@@ -402,6 +435,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
   },
+  note: {
+    marginTop: 16,
+    width: '96%',
+    marginLeft: 'auto'
+  },
   viewImages: {
     flex: 1,
     flexWrap: 'wrap',
@@ -417,6 +455,24 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     position: "relative",
     paddingLeft: 10
+  },
+  modalCreatBookSucc: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    opacity: 0.9
+  },
+  textModalPopup: {
+    backgroundColor: '#C7D6D6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingLeft: 20,
+    paddingRight: 20,
+    borderRadius: 20,
+    color: 'black'
   }
 });
 
