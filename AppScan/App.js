@@ -39,6 +39,11 @@ import ImgToBase64 from 'react-native-image-base64';
 import RadioGroup from 'react-native-radio-buttons-group';
 import SelectDropdown from 'react-native-select-dropdown';
 import MIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs(['Warning: ...']); // Ignore log notification by message
+LogBox.ignoreAllLogs();//Ignore all log notifications
+
 // import Pdf from 'react-native-pdf';
 // import PSPDFKitView from 'react-native-pspdfkit';
 
